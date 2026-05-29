@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
 from db.models import User, ModelMetric
+# pyrefly: ignore [missing-import]
 from auth.jwt import get_current_user, require_admin
 from services.model_service import model_service
 from services.monitoring import monitoring_service
