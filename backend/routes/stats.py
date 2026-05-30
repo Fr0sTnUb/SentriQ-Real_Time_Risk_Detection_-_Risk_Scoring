@@ -12,7 +12,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func, and_, case, text
+from sqlalchemy import select, func, and_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
@@ -108,35 +108,33 @@ async def get_hourly(
     current_user: User = Depends(get_current_user),
 ):
     """Return last 60 data points (1 per minute) for the AreaChart."""
-    now = datetime.now(timezone.utc)
-    cutoff_60m = now - timedelta(minutes=60)
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    cutoff_60m = now - timedelta(minutes=59)
 
-    # Query transactions grouped by minute
     result = await db.execute(
         select(
-            func.date_trunc('minute', Transaction.created_at).label('minute'),
-            func.count(Transaction.id).label('txn_count'),
-            func.count(case((Prediction.is_fraud == True, 1))).label('fraud_count'),
+            Transaction.created_at,
+            Prediction.is_fraud,
         )
         .outerjoin(Prediction, Transaction.txn_id == Prediction.txn_id)
         .where(and_(
             Transaction.created_at >= cutoff_60m,
             Transaction.is_deleted == False,
         ))
-        .group_by(func.date_trunc('minute', Transaction.created_at))
-        .order_by(func.date_trunc('minute', Transaction.created_at).asc())
+        .order_by(Transaction.created_at.asc())
     )
     rows = result.all()
 
-    # Build the response with 60 data points (fill gaps with zeros)
     data_points = []
     minute_data = {}
-    for row in rows:
-        minute_key = row.minute.strftime("%H:%M") if row.minute else "00:00"
-        minute_data[minute_key] = {
-            "transaction_count": row.txn_count,
-            "fraud_count": row.fraud_count,
-        }
+    for created_at, is_fraud in rows:
+        if not created_at:
+            continue
+        minute_key = created_at.strftime("%H:%M")
+        bucket = minute_data.setdefault(minute_key, {"transaction_count": 0, "fraud_count": 0})
+        bucket["transaction_count"] += 1
+        if is_fraud:
+            bucket["fraud_count"] += 1
 
     for i in range(60):
         t = cutoff_60m + timedelta(minutes=i)

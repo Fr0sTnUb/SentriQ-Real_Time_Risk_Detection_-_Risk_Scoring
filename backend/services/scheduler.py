@@ -15,7 +15,8 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy import select, func, and_
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+from sqlalchemy import select
 
 from db.database import AsyncSessionLocal
 from db.models import Prediction, ModelMetric
@@ -118,9 +119,8 @@ class SchedulerService:
         """
         try:
             async with AsyncSessionLocal() as session:
-                # Get last 1000 predictions
                 result = await session.execute(
-                    select(Prediction.is_fraud, Prediction.confidence_score)
+                    select(Prediction.is_fraud, Prediction.risk_score)
                     .order_by(Prediction.created_at.desc())
                     .limit(1000)
                 )
@@ -130,30 +130,29 @@ class SchedulerService:
                     logger.info("⏭️  Not enough predictions for metrics computation (need >= 50).")
                     return
 
-                # Compute approximate metrics from prediction distribution
                 total = len(rows)
-                fraud_count = sum(1 for r in rows if r.is_fraud)
-                legit_count = total - fraud_count
+                y_true = [1 if row.is_fraud else 0 for row in rows]
+                y_score = [(row.risk_score or 0) / 100 for row in rows]
+                y_pred = [1 if score >= 0.35 else 0 for score in y_score]
 
-                # Approximate metrics based on confidence calibration
-                avg_confidence = sum(r.confidence_score for r in rows) / total
-                fraud_rate = fraud_count / total if total > 0 else 0
+                if len(set(y_true)) < 2:
+                    logger.info("⏭️  Not enough class variety for metrics computation.")
+                    return
 
-                # Simulated metrics (in production, you'd evaluate against ground truth labels)
-                precision_val = min(0.99, avg_confidence + 0.02)
-                recall_val = min(0.98, avg_confidence)
-                f1 = 2 * (precision_val * recall_val) / (precision_val + recall_val) if (precision_val + recall_val) > 0 else 0
-                auc_roc = min(0.99, avg_confidence + 0.05)
+                auc_roc = roc_auc_score(y_true, y_score)
+                f1 = f1_score(y_true, y_pred, zero_division=0)
+                precision_val = precision_score(y_true, y_pred, zero_division=0)
+                recall_val = recall_score(y_true, y_pred, zero_division=0)
 
-                async with session.begin():
-                    metric = ModelMetric(
-                        model_version=model_service.version,
-                        auc_roc=round(auc_roc, 4),
-                        f1_score=round(f1, 4),
-                        precision_val=round(precision_val, 4),
-                        recall=round(recall_val, 4),
-                    )
-                    session.add(metric)
+                metric = ModelMetric(
+                    model_version=model_service.version,
+                    auc_roc=round(auc_roc, 4),
+                    f1_score=round(f1, 4),
+                    precision_val=round(precision_val, 4),
+                    recall=round(recall_val, 4),
+                )
+                session.add(metric)
+                await session.commit()
 
                 logger.info(
                     f"📈 Model metrics computed | AUC={auc_roc:.4f} | F1={f1:.4f} | "

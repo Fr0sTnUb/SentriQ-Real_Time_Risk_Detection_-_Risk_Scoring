@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from db.database import get_db
 from db.models import User, Transaction, Prediction
@@ -106,13 +105,10 @@ async def get_transaction_detail(
 
     detail = TransactionDetail(
         txn_id=txn.txn_id,
+        time_elapsed=txn.time_elapsed,
         amount=txn.amount,
         hour_of_day=txn.hour_of_day,
-        v1=txn.v1,
-        v2=txn.v2,
-        v3=txn.v3,
-        v4=txn.v4,
-        v5=txn.v5,
+        **{f"v{i}": getattr(txn, f"v{i}") for i in range(1, 29)},
         is_fraud=pred.is_fraud if pred else None,
         confidence_score=pred.confidence_score if pred else None,
         risk_score=pred.risk_score if pred else None,

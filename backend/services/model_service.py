@@ -23,13 +23,9 @@ import joblib
 
 logger = logging.getLogger(__name__)
 
-# Feature names matching the transaction schema
-FEATURE_NAMES = [
-    "time", "amount", "hour_of_day", 
-    "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", 
-    "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18", "v19", "v20", 
-    "v21", "v22", "v23", "v24", "v25", "v26", "v27", "v28"
-]
+# Feature names and transforms must match backend/ml/train_model.py.
+FEATURE_NAMES = [f"v{i}" for i in range(1, 29)] + ["amount", "hour_of_day"]
+DECISION_THRESHOLD = 0.35
 
 
 class ModelService:
@@ -95,7 +91,7 @@ class ModelService:
         from sklearn.linear_model import LogisticRegression
         import numpy as np
 
-        X_dummy = np.random.randn(200, 30)
+        X_dummy = np.random.randn(200, len(FEATURE_NAMES))
         y_dummy = np.array([0] * 190 + [1] * 10)
 
         pipeline = Pipeline([
@@ -109,6 +105,22 @@ class ModelService:
         # Set a dummy scaler for the predict method that relies on self.scaler
         self.scaler = StandardScaler().fit(np.random.randn(10, len(FEATURE_NAMES)))
         logger.warning("Running with MOCK model — predictions are simulated")
+
+    def _prepare_feature_vector(self, features: dict) -> np.ndarray:
+        prepared = {}
+        for i in range(1, 29):
+            prepared[f"v{i}"] = float(features.get(f"v{i}", 0.0) or 0.0)
+
+        raw_amount = float(features.get("amount", 0.0) or 0.0)
+        prepared["amount"] = float(np.log1p(max(raw_amount, 0.0)))
+
+        if "hour_of_day" in features and features.get("hour_of_day") is not None:
+            hour = int(features.get("hour_of_day", 0))
+        else:
+            hour = int((float(features.get("time", 0.0) or 0.0) // 3600) % 24)
+        prepared["hour_of_day"] = max(0, min(hour, 23))
+
+        return np.array([[prepared[name] for name in FEATURE_NAMES]], dtype=float)
 
     def _compute_feature_importances(self):
         """Extract feature importances from the model."""
@@ -158,23 +170,18 @@ class ModelService:
 
         start = time.perf_counter()
 
-        # Build feature vector in correct order
-        feature_vector = np.array([[features.get(f, 0.0) for f in FEATURE_NAMES]])
+        feature_vector = self._prepare_feature_vector(features)
 
-        # If it's the mock pipeline from user spec, we should pass the unscaled data since the pipeline has a scaler
         if self.is_mock and hasattr(self.model, "predict_proba"):
-            # We must slice the feature vector to 30 features because the mock data had 30 features
-            feature_vector_for_mock = feature_vector[:, :30]
-            probas = self.model.predict_proba(feature_vector_for_mock)[0]
+            probas = self.model.predict_proba(feature_vector)[0]
         else:
-            # Scale features for standard model
-            feature_vector_scaled = self.scaler.transform(feature_vector) if self.scaler else feature_vector
+            feature_frame = pd.DataFrame(feature_vector, columns=FEATURE_NAMES)
+            feature_vector_scaled = self.scaler.transform(feature_frame) if self.scaler else feature_vector
             probas = self.model.predict_proba(feature_vector_scaled)[0]
 
         fraud_probability = float(probas[1]) if len(probas) > 1 else float(probas[0])
 
-        # Apply decision threshold of 0.35 for higher recall
-        is_fraud = fraud_probability >= 0.35
+        is_fraud = fraud_probability >= DECISION_THRESHOLD
 
         # Confidence: how confident the model is in its prediction
         confidence_score = fraud_probability if is_fraud else (1.0 - fraud_probability)

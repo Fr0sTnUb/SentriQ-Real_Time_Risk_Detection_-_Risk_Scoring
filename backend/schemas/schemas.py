@@ -149,46 +149,46 @@ class TransactionBatchInput(BaseModel):
 
 class TransactionDetail(BaseModel):
     """Full transaction detail with prediction result."""
+    model_config = ConfigDict(from_attributes=True)
+
     txn_id: str
-    time_elapsed: float
+    time_elapsed: float | None = None
     amount: float
     hour_of_day: int
-    v1: float
-    v2: float
-    v3: float
-    v4: float
-    v5: float
-    v6: float
-    v7: float
-    v8: float
-    v9: float
-    v10: float
-    v11: float
-    v12: float
-    v13: float
-    v14: float
-    v15: float
-    v16: float
-    v17: float
-    v18: float
-    v19: float
-    v20: float
-    v21: float
-    v22: float
-    v23: float
-    v24: float
-    v25: float
-    v26: float
-    v27: float
-    v28: float
+    v1: float | None = None
+    v2: float | None = None
+    v3: float | None = None
+    v4: float | None = None
+    v5: float | None = None
+    v6: float | None = None
+    v7: float | None = None
+    v8: float | None = None
+    v9: float | None = None
+    v10: float | None = None
+    v11: float | None = None
+    v12: float | None = None
+    v13: float | None = None
+    v14: float | None = None
+    v15: float | None = None
+    v16: float | None = None
+    v17: float | None = None
+    v18: float | None = None
+    v19: float | None = None
+    v20: float | None = None
+    v21: float | None = None
+    v22: float | None = None
+    v23: float | None = None
+    v24: float | None = None
+    v25: float | None = None
+    v26: float | None = None
+    v27: float | None = None
+    v28: float | None = None
     is_fraud: bool | None = None
     confidence_score: float | None = None
     risk_score: int | None = None
     model_version: str | None = None
     processing_time_ms: float | None = None
     created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 # ──────────────────────────────────────────────────────────────

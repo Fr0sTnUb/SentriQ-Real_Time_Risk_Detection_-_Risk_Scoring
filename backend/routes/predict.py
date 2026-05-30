@@ -11,7 +11,7 @@ import uuid
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,14 +49,12 @@ async def predict_single(
 
     # Build features dict
     features = {
+        "time": txn_input.time,
         "amount": txn_input.amount,
         "hour_of_day": txn_input.hour_of_day,
-        "v1": txn_input.v1,
-        "v2": txn_input.v2,
-        "v3": txn_input.v3,
-        "v4": txn_input.v4,
-        "v5": txn_input.v5,
     }
+    for i in range(1, 29):
+        features[f"v{i}"] = getattr(txn_input, f"v{i}")
 
     # Run ML inference
     prediction = model_service.predict(features)
@@ -64,14 +62,12 @@ async def predict_single(
     # Save transaction
     txn = Transaction(
         txn_id=txn_id,
+        time_elapsed=txn_input.time,
         amount=txn_input.amount,
         hour_of_day=txn_input.hour_of_day,
-        v1=txn_input.v1,
-        v2=txn_input.v2,
-        v3=txn_input.v3,
-        v4=txn_input.v4,
-        v5=txn_input.v5,
     )
+    for i in range(1, 29):
+        setattr(txn, f"v{i}", getattr(txn_input, f"v{i}"))
     db.add(txn)
     await db.flush()
 
