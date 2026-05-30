@@ -1,5 +1,5 @@
 """
-APScheduler job definitions for the FraudGuard ML system.
+APScheduler job definitions for the SentriQ system.
 
 Scheduled jobs:
     - Every 8 seconds:  Simulate a transaction (keep dashboard live)
@@ -32,7 +32,7 @@ retrain_jobs: dict = {}
 
 class SchedulerService:
     """
-    Manages all APScheduler background jobs for the FraudGuard system.
+    Manages all APScheduler background jobs for the SentriQ system.
     """
 
     def __init__(self):

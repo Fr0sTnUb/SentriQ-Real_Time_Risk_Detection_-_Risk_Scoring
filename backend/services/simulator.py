@@ -1,5 +1,5 @@
 """
-Background transaction simulator for the FraudGuard ML system.
+Background transaction simulator for the SentriQ system.
 
 Generates realistic fake transactions and runs them through the ML model
 at a configurable interval (default: every 8 seconds). This keeps the

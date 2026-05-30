@@ -1,5 +1,5 @@
 """
-SQLAlchemy ORM models for the FraudGuard ML system.
+SQLAlchemy ORM models for the SentriQ system.
 
 Tables:
     - users: Application users with roles (admin/viewer)

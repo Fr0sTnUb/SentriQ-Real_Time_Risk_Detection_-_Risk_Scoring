@@ -1,5 +1,5 @@
 """
-FraudGuard ML — FastAPI Application Entry Point
+SentriQ — FastAPI Application Entry Point
 
 Production-grade backend for real-time credit card fraud detection.
 Configures CORS, registers all route groups, initializes the ML model,
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
         2. Close database connection pool
     """
     logger.info("=" * 60)
-    logger.info("🚀 FraudGuard ML — Starting up...")
+    logger.info("🚀 SentriQ — Starting up...")
     logger.info("=" * 60)
 
     # 1. Initialize database
@@ -62,22 +62,22 @@ async def lifespan(app: FastAPI):
     scheduler_service.start()
 
     logger.info("=" * 60)
-    logger.info("✅ FraudGuard ML — All systems online!")
+    logger.info("✅ SentriQ — All systems online!")
     logger.info("=" * 60)
 
     yield
 
     # Shutdown
-    logger.info("🛑 FraudGuard ML — Shutting down...")
+    logger.info("🛑 SentriQ — Shutting down...")
     scheduler_service.stop()
     await close_db()
-    logger.info("👋 FraudGuard ML — Goodbye!")
+    logger.info("👋 SentriQ — Goodbye!")
 
 
 # ─── FastAPI App ───
 
 app = FastAPI(
-    title="FraudGuard ML API",
+    title="SentriQ API",
     description=(
         "Production-grade REST API for real-time credit card fraud detection. "
         "Powered by XGBoost ML inference, PostgreSQL persistence, JWT authentication, "
@@ -175,12 +175,12 @@ async def root():
     return {
         "success": True,
         "data": {
-            "service": "FraudGuard ML API",
+            "service": "SentriQ API",
             "version": "1.0.0",
             "status": "online",
             "docs": "/docs",
         },
-        "message": "FraudGuard ML API is running.",
+        "message": "SentriQ API is running.",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 

@@ -1,5 +1,5 @@
 """
-Seed script for the FraudGuard ML system.
+Seed script for the SentriQ system.
 
 Populates the database with:
     - 2 users (admin + viewer)
@@ -32,7 +32,7 @@ from services.model_service import model_service
 async def seed():
     """Main seed function."""
     print("=" * 60)
-    print(" FraudGuard ML - Database Seed Script")
+    print(" SentriQ - Database Seed Script")
     print("=" * 60)
 
     # Initialize tables
@@ -56,7 +56,7 @@ async def seed():
             if user_count == 0:
                 admin_user = User(
                     username="admin",
-                    hashed_password=hash_password("admin123"),
+                    hashed_password=hash_password("no123"),
                     role="admin",
                 )
                 viewer_user = User(
@@ -65,7 +65,7 @@ async def seed():
                     role="viewer",
                 )
                 session.add_all([admin_user, viewer_user])
-                print("Created users: admin (admin123), viewer (viewer123)")
+                print("Created users: admin (no123), viewer (viewer123)")
 
             # ─── Seed Transactions & Predictions ───
             if txn_count == 0:
