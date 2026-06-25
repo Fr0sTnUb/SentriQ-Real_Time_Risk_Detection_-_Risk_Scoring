@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import AsyncSessionLocal
 from db.models import Transaction, Prediction
+from services.live_feed import live_feed_manager
 from services.model_service import model_service
 
 logger = logging.getLogger(__name__)
@@ -141,6 +142,15 @@ class SimulatorService:
                     session.add(pred)
 
             self.transactions_generated += 1
+            await live_feed_manager.broadcast({
+                "txn_id": txn_data["txn_id"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "amount": txn_data["amount"],
+                "confidence_score": prediction["confidence_score"],
+                "risk_score": prediction["risk_score"],
+                "status": "Fraud" if prediction["is_fraud"] else "Legit",
+                "model_version": prediction["model_version"],
+            })
             status_str = "🔴 FRAUD" if prediction["is_fraud"] else "🟢 Legit"
             logger.debug(
                 f"Simulated txn {txn_data['txn_id']} | "

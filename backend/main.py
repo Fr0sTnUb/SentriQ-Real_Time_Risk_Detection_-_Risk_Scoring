@@ -154,12 +154,18 @@ from routes.predict import router as predict_router
 from routes.stats import router as stats_router
 from routes.transactions import router as transactions_router
 from routes.model import router as model_router
+from routes.live import router as live_router
+from routes.config import router as config_router
+from routes.review import router as review_router
 
 app.include_router(auth_router)
 app.include_router(predict_router)
 app.include_router(stats_router)
 app.include_router(transactions_router)
 app.include_router(model_router)
+app.include_router(live_router)
+app.include_router(config_router)
+app.include_router(review_router)
 
 
 # ─── Root Health Check ───
